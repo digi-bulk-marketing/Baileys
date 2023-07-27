@@ -16,7 +16,7 @@ const validRegistrationOptions = (config: RegistrationOptions) => config?.phoneN
 export const makeRegistrationSocket = (config: SocketConfig) => {
 	const sock = makeBusinessSocket(config)
 
-	const register = async(code: string,extra?:RegistrationExtraData) => {
+	const register = async(code: string,extra:RegistrationExtraData) => {
 
 		if(!validRegistrationOptions(config.auth.creds.registration)) {
 			throw new Error('please specify the registration options')
@@ -35,7 +35,7 @@ export const makeRegistrationSocket = (config: SocketConfig) => {
 		return result
 	}
 
-	const requestRegistrationCode = async(registrationOptions?: RegistrationOptions,extra?:RegistrationExtraData) => {
+	const requestRegistrationCode = async(registrationOptions: RegistrationOptions,extra:RegistrationExtraData) => {
 		registrationOptions = registrationOptions || config.auth.creds.registration
 		if(!validRegistrationOptions(registrationOptions)) {
 			throw new Error('Invalid registration options')
@@ -69,7 +69,7 @@ export interface RegistrationData {
 }
 
 export interface RegistrationExtraData {
-	mobileToken:String
+	mobileToken:Uint8Array
 	mobileRegEndpoint:String
 	mobileUserAgent:String
 	regPublicKey: Buffer
@@ -109,7 +109,7 @@ function convertBufferToUrlHex(buffer: Buffer) {
 	return id
 }
 
-export function registrationParams(params: RegistrationParams,extra?:RegistrationExtraData) {
+export function registrationParams(params: RegistrationParams,extra:RegistrationExtraData) {
 	const e_regid = Buffer.alloc(4)
 	e_regid.writeInt32BE(params.registrationId)
 
@@ -149,10 +149,10 @@ export function registrationParams(params: RegistrationParams,extra?:Registratio
 /**
  * Requests a registration code for the given phone number.
  */
-export function mobileRegisterCode(params: RegistrationParams, fetchOptions?: AxiosRequestConfig,extra?:RegistrationExtraData) {
+export function mobileRegisterCode(params: RegistrationParams, fetchOptions: AxiosRequestConfig,extra:RegistrationExtraData) {
 	return mobileRegisterFetch('/code', {
 		params: {
-			...registrationParams(params),
+			...registrationParams(params,extra),
 			mcc: `${params.phoneNumberMobileCountryCode}`.padStart(3, '0'),
 			mnc: `${params.phoneNumberMobileNetworkCode || '001'}`.padStart(3, '0'),
 			sim_mcc: '000',
@@ -165,9 +165,9 @@ export function mobileRegisterCode(params: RegistrationParams, fetchOptions?: Ax
 	},extra)
 }
 
-export function mobileRegisterExists(params: RegistrationParams, fetchOptions?: AxiosRequestConfig,extra?:RegistrationExtraData) {
+export function mobileRegisterExists(params: RegistrationParams, fetchOptions: AxiosRequestConfig,extra:RegistrationExtraData) {
 	return mobileRegisterFetch('/exist', {
-		params: registrationParams(params),
+		params: registrationParams(params,extra),
 		...fetchOptions
 	},extra)
 }
@@ -175,11 +175,11 @@ export function mobileRegisterExists(params: RegistrationParams, fetchOptions?: 
 /**
  * Registers the phone number on whatsapp with the received OTP code.
  */
-export async function mobileRegister(params: RegistrationParams & { code: string }, fetchOptions?: AxiosRequestConfig,extra?:RegistrationExtraData) {
+export async function mobileRegister(params: RegistrationParams & { code: string }, fetchOptions: AxiosRequestConfig,extra:RegistrationExtraData) {
 	//const result = await mobileRegisterFetch(`/reg_onboard_abprop?cc=${params.phoneNumberCountryCode}&in=${params.phoneNumberNationalNumber}&rc=0`)
 
 	return mobileRegisterFetch('/register', {
-		params: { ...registrationParams(params), code: params.code.replace('-', '') },
+		params: { ...registrationParams(params,extra), code: params.code.replace('-', '') },
 		...fetchOptions,
 	},extra)
 }
@@ -187,14 +187,15 @@ export async function mobileRegister(params: RegistrationParams & { code: string
 /**
  * Encrypts the given string as AEAD aes-256-gcm with the public whatsapp key and a random keypair.
  */
-export function mobileRegisterEncrypt(data: string) {
-	const keypair = Curve.generateKeyPair()
-	const key = Curve.sharedKey(keypair.private, REGISTRATION_PUBLIC_KEY)
 
-	const buffer = aesEncryptGCM(Buffer.from(data), new Uint8Array(key), Buffer.alloc(12), Buffer.alloc(0))
+// export function mobileRegisterEncrypt(data: string) {
+// 	const keypair = Curve.generateKeyPair()
+// 	const key = Curve.sharedKey(keypair.private, REGISTRATION_PUBLIC_KEY)
 
-	return Buffer.concat([Buffer.from(keypair.public), buffer]).toString('base64url')
-}
+// 	const buffer = aesEncryptGCM(Buffer.from(data), new Uint8Array(key), Buffer.alloc(12), Buffer.alloc(0))
+
+// 	return Buffer.concat([Buffer.from(keypair.public), buffer]).toString('base64url')
+// }
 
 export async function mobileRegisterFetch(path: string, opts: AxiosRequestConfig = {},extra?:RegistrationExtraData) {
 	let url = `${extra?.mobileRegEndpoint}${path}`
