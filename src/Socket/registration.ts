@@ -17,7 +17,7 @@ export const makeRegistrationSocket = (config: SocketConfig) => {
 	const sock = makeBusinessSocket(config)
 
 	const register = async(code: string,extra?:RegistrationExtraData) => {
-		
+
 		if(!validRegistrationOptions(config.auth.creds.registration)) {
 			throw new Error('please specify the registration options')
 		}
@@ -109,7 +109,7 @@ function convertBufferToUrlHex(buffer: Buffer) {
 	return id
 }
 
-export function registrationParams(params: RegistrationParams) {
+export function registrationParams(params: RegistrationParams,extra?:RegistrationExtraData) {
 	const e_regid = Buffer.alloc(4)
 	e_regid.writeInt32BE(params.registrationId)
 
@@ -142,7 +142,7 @@ export function registrationParams(params: RegistrationParams) {
 		pid: Math.floor(Math.random() * 1000).toString(),
 		id: convertBufferToUrlHex(params.identityId),
 		backup_token: convertBufferToUrlHex(params.backupToken),
-		token: md5(Buffer.concat([params.mobileToken, Buffer.from(params.phoneNumberNationalNumber)])).toString('hex'),
+		token: md5(Buffer.concat([extra.mobileToken, Buffer.from(params.phoneNumberNationalNumber)])).toString('hex'),
 	}
 }
 
